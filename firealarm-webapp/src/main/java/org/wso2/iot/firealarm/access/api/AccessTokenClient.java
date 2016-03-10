@@ -33,23 +33,98 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Properties;
 
 
 public class AccessTokenClient {
 
 	//TODO read from configuration file
 	private static Log log = LogFactory.getLog(AccessTokenClient.class);
-	private String tokenURL ="https://192.168.57.128:9444/oauth2/token";
-	private String grantType ="password";
-	private String scope ="PRODUCTION device_";
-	private String appToken="NVp6UzIxM1RyWDhOUHY1QjN1Z0tXczJ1WW1nYTp3TG9iMkFldW1DZkNMVkpZVnROYjlDSFVYUXNh";
+//	private static AccessTokenClient accessTokenClient = new AccessTokenClient();
+	private static final String propertiesFileName = "firealarmApp.properties";
+	private static final String confDirPath = System.getProperty("carbon.config.dir.path");
+	private static final String propertiesFilePath = confDirPath + File.separator + "iot" + File.separator + propertiesFileName;
+
+	private static Properties properties = new Properties();;
+	private static InputStream propertiesInputStream = null;
+
+//	private String tokenURL ="https://192.168.57.128:9444/oauth2/token";
+	private static String tokenURL ="https://localhost:9443/oauth2/token";
+	private static String grantType ="password";
+	private static String scope ="PRODUCTION device_";
+	private static String appToken="NVp6UzIxM1RyWDhOUHY1QjN1Z0tXczJ1WW1nYTp3TG9iMkFldW1DZkNMVkpZVnROYjlDSFVYUXNh";
+
+	public AccessTokenClient() throws AccessTokenException {
+		try {
+			propertiesInputStream = new FileInputStream(propertiesFilePath);
+		} catch (FileNotFoundException e) {
+			log.error("API specific properties file could not be found at: " + propertiesFilePath);
+		}
+
+		//load a properties file from class path, inside static method
+		try {
+			properties.load(propertiesInputStream);
+		} catch (IOException e) {
+			String error = "Loading API specific properties from file at - " + propertiesFilePath + " failed...";
+			log.error(error);
+			throw new AccessTokenException(error, e);
+		}
+
+		tokenURL = properties.getProperty("tokenURL");
+		grantType = properties.getProperty("grantType");
+		scope = properties.getProperty("scope");
+		appToken = properties.getProperty("appToken");
+
+		try {
+			propertiesInputStream.close();
+		} catch (IOException e) {
+			String error = "Stream for reading Properties file could not be closed";
+			log.warn(error);
+			throw new AccessTokenException(error, e);
+		}
+
+//		return accessTokenClient;
+	}
+
+//	public static AccessTokenClient getInstance(){
+//		try {
+//			propertiesInputStream = new FileInputStream(propertiesFilePath);
+//		} catch (FileNotFoundException e) {
+//			log.error("API specific properties file could not be found at: " + propertiesFilePath);
+//		}
+//
+//		//load a properties file from class path, inside static method
+//		try {
+//			properties.load(propertiesInputStream);
+//		} catch (IOException e) {
+//			log.error("Loading API specific properties from file at - " + propertiesFilePath + " failed...");
+//		}
+//
+//		tokenURL = properties.getProperty("tokenURL");
+//		grantType = properties.getProperty("grantType");
+//		scope = properties.getProperty("scope");
+//		appToken = properties.getProperty("appToken");
+//
+//		try {
+//			propertiesInputStream.close();
+//		} catch (IOException e) {
+//			log.warn("Stream for reading Properties file could not be closed");
+//		}
+//
+//		return accessTokenClient;
+//	}
+
 
 	public AccessTokenInfo getAccessToken(String username,String password ,String appInstanceId) throws AccessTokenException {
 		SSLContext ctx;
